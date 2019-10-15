@@ -1,1 +1,1 @@
-from .layers import Input, ReLU, VerificationState  # noqa
+from .layers import Input, ReLU, VerificationState, AffineTransformation  # noqa

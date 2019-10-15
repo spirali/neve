@@ -1,17 +1,7 @@
 import collections
 
 import numpy as np
-
-Constraint = collections.namedtuple("Constraint", ["weights", "bias"])
-
-
-class DeepPolyElement:
-    def __init__(self, lower_cst, upper_cst):
-        assert upper_cst.weights.shape == lower_cst.weights.shape
-        assert upper_cst.bias.shape == lower_cst.bias.shape
-        assert upper_cst.weights.shape[0] == upper_cst.bias.shape[0]
-        self.lower_cst = lower_cst
-        self.upper_cst = upper_cst
+from .element import DenseConstraint, DeepPolyElement
 
 
 class VerificationState:
@@ -42,30 +32,22 @@ class Node:
 
     def compute_bounds(self, state):
         element = state.get_or_create_element(self)
-        print(element.lower_cst.weights)
-        bounds = (self.parent.compute_lower_bounds(state, element.lower_cst.weights) + element.lower_cst.bias,
-                  self.parent.compute_upper_bounds(state, element.upper_cst.weights) + element.upper_cst.bias)
+        bounds = (self.parent.compute_lower_bounds(state, element.lower_cst) + element.lower_bias,
+                  self.parent.compute_upper_bounds(state, element.upper_cst) + element.upper_bias)
         state.bounds[self] = bounds
         return bounds
 
-    def compute_upper_bounds(self, state, weights):
+    def compute_upper_bounds(self, state, constraint):
         element = state.get_or_create_element(self)
+        bounds = constraint.apply_weights(element.lower_bias, element.upper_bias)
+        new_constraint = constraint.apply_constraint(element.lower_cst, element.upper_cst)
+        return bounds + self.parent.compute_upper_bounds(state, new_constraint)
 
-        pos_w = np.maximum(weights, 0)
-        neg_w = np.minimum(weights, 0)
-        new_weights = pos_w @ element.upper_cst.weights + neg_w @ element.lower_cst.weights
-        bounds = pos_w @ element.upper_cst.bias + neg_w @ element.lower_cst.bias
-        return bounds + self.parent.compute_upper_bounds(new_weights, state)
-
-    def compute_lower_bounds(self, state, weights):
+    def compute_lower_bounds(self, state, constraint):
         element = state.get_or_create_element(self)
-
-        pos_w = np.maximum(weights, 0)
-        neg_w = np.minimum(weights, 0)
-
-        new_weights = pos_w @ element.lower_cst.weights + neg_w @ element.upper_cst.weights
-        bounds = pos_w @ element.lower_cst.bias + neg_w @ element.upper_cst.bias
-        return bounds + self.parent.compute_weighted_bounds(new_weights, state)
+        bounds = constraint.apply_weights(element.upper_bias, element.lower_bias)
+        new_constraint = constraint.apply_constraint(element.upper_cst, element.lower_cst)
+        return bounds + self.parent.compute_lower_bounds(state, new_constraint)
 
 
 class Input:
@@ -74,17 +56,13 @@ class Input:
         bounds = state.bounds[self]
         return bounds
 
-    def compute_upper_bounds(self, state, weights):
+    def compute_upper_bounds(self, state, constraint):
         bounds = state.bounds[self]
-        pos_w = np.maximum(weights, 0)
-        neg_w = np.minimum(weights, 0)
-        return pos_w @ bounds[1] + neg_w @ bounds[0]
+        return constraint.apply_weights(bounds[0], bounds[1])
 
-    def compute_lower_bounds(self, state, weights):
+    def compute_lower_bounds(self, state, constraint):
         bounds = state.bounds[self]
-        pos_w = np.maximum(weights, 0)
-        neg_w = np.minimum(weights, 0)
-        return pos_w @ bounds[0] + neg_w @ bounds[1]
+        return constraint.apply_weights(bounds[1], bounds[0])
 
     def forward(self, inputs):
         return inputs[self]
@@ -97,13 +75,18 @@ class AffineTransformation(Node):
         self.weights = weights
         self.bias = bias
 
-    def create_element(self, state):
-        cst = Constraint(self.weights, self.bias)
-        return DeepPolyElement(cst, cst)
-
     def forward(self, inputs):
         return self.parent.forward(inputs) @ self.weights.transpose() + self.bias
 
+    def create_element(self, state):
+        cst = DenseConstraint(self.weights)
+        bias = self.bias
+        return DeepPolyElement(cst, cst, bias, bias)
+
+    """
+    def forward(self, inputs):
+        return self.parent.forward(inputs) @ self.weights.transpose() + self.bias
+    """
 
 class ReLU(Node):
 
@@ -114,8 +97,8 @@ class ReLU(Node):
         lo_bounds, up_bounds = self.parent.compute_bounds(state)
 
         n = lo_bounds.shape[0]
-        up_w = np.zeros((n, 1))
-        lo_w = np.zeros((n, 1))
+        up_w = np.zeros((n,))
+        lo_w = np.zeros((n,))
         up_bias = np.zeros((n,))
         lo_bias = np.zeros((n,))
 
@@ -132,7 +115,9 @@ class ReLU(Node):
         up_w[mixed] = lambda_
         up_bias[mixed] = -m_lo * lambda_
 
-        up_cst = Constraint(up_w, up_bias)
-        lo_cst = Constraint(lo_w, lo_bias)
+        lo_w[mixed & (up_bounds > -lo_bounds)] = 1.0
 
-        return DeepPolyElement(lo_cst, up_cst)
+        up_cst = DenseConstraint(np.diag(up_w))
+        lo_cst = DenseConstraint(np.diag(lo_w))
+
+        return DeepPolyElement(lo_cst, up_cst, lo_bias, up_bias)
