@@ -9,6 +9,7 @@ class VerificationState:
     def __init__(self, inputs):
         self.bounds = inputs.copy()
         self.elements = {}
+        self.mode = "orig"
 
     def get_or_create_element(self, node):
         element = self.elements.get(node)
@@ -96,28 +97,88 @@ class ReLU(Node):
     def create_element(self, state):
         lo_bounds, up_bounds = self.parent.compute_bounds(state)
 
-        n = lo_bounds.shape[0]
-        up_w = np.zeros((n,))
-        lo_w = np.zeros((n,))
-        up_bias = np.zeros((n,))
-        lo_bias = np.zeros((n,))
+        if state.mode == "orig":
+            n = lo_bounds.shape[0]
+            up_w = np.zeros((n,))
+            lo_w = np.zeros((n,))
+            up_bias = np.zeros((n,))
+            lo_bias = np.zeros((n,))
 
-        linear = lo_bounds >= 0
-        up_w[linear] = 1.0
-        lo_w[linear] = 1.0
+            linear = lo_bounds >= 0
+            up_w[linear] = 1.0
+            lo_w[linear] = 1.0
 
-        mixed = (up_bounds > 0) & ~linear
+            mixed = (up_bounds > 0) & ~linear
 
-        m_lo = lo_bounds[mixed]
-        m_up = up_bounds[mixed]
+            m_lo = lo_bounds[mixed]
+            m_up = up_bounds[mixed]
 
-        lambda_ = m_up / (m_up - m_lo)
-        up_w[mixed] = lambda_
-        up_bias[mixed] = -m_lo * lambda_
+            lambda_ = m_up / (m_up - m_lo)
+            up_w[mixed] = lambda_
+            up_bias[mixed] = -m_lo * lambda_
 
-        lo_w[mixed & (up_bounds > -lo_bounds)] = 1.0
+            lo_w[mixed & (up_bounds > -lo_bounds)] = 1.0
+
+        elif state.mode in ["mode0", "mode1", "rnd1"]:
+            n = lo_bounds.shape[0]
+            up_w = np.zeros((n,))
+            lo_w = np.zeros((n,))
+            up_bias = np.zeros((n,))
+            lo_bias = np.zeros((n,))
+
+            linear = lo_bounds >= 0
+            up_w[linear] = 1.0
+            lo_w[linear] = 1.0
+
+            mixed = (up_bounds > 0) & ~linear
+            m_lo = lo_bounds[mixed]
+            m_up = up_bounds[mixed]
+
+            lambda_ = m_up / (m_up - m_lo)
+            up_w[mixed] = lambda_
+            up_bias[mixed] = -m_lo * lambda_
+
+            if state.mode == "mode1":
+                lo_w[mixed] = 1.0
+            if state.mode == "rnd1":
+                lo_w[mixed] = np.random.rand(np.sum(mixed))
+        elif state.mode == "new":
+            pos = np.maximum(up_bounds, 0)
+            neg = np.minimum(lo_bounds, 0)
+            lambda_ = pos / (pos - neg)
+
+            up_w = lambda_
+            lo_w = np.round(lambda_)
+
+            up_bias = -neg * lambda_
+            n = lo_bounds.shape[0]
+            lo_bias = np.zeros((n,))
+        elif state.mode == "new2":
+            pos = np.maximum(up_bounds, 0)
+            neg = np.minimum(lo_bounds, 0)
+            lambda_ = pos / (pos - neg)
+
+            up_w = lambda_
+            lo_w = (lambda_ >= 0.70)
+
+            up_bias = -neg * lambda_
+            n = lo_bounds.shape[0]
+            lo_bias = np.zeros((n,))
+        elif state.mode == "new-rnd":
+            pos = np.maximum(up_bounds, 0)
+            neg = np.minimum(lo_bounds, 0)
+            lambda_ = pos / (pos - neg)
+
+            up_w = lambda_
+            rn = np.random.rand(up_w.shape[0]) / 0.5 + 0.25
+            lo_w = (lambda_ >= rn)
+
+            up_bias = -neg * lambda_
+            n = lo_bounds.shape[0]
+            lo_bias = np.zeros((n,))
+        else:
+            assert 0
 
         up_cst = DenseConstraint(np.diag(up_w))
         lo_cst = DenseConstraint(np.diag(lo_w))
-
         return DeepPolyElement(lo_cst, up_cst, lo_bias, up_bias)
