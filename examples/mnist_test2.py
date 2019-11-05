@@ -6,7 +6,7 @@ import plotly.express as pe
 import tqdm
 
 def main():
-    net, inp = neve.io.read_tf_file("mnist_relu_3_50.tf")
+    net, inp = neve.io.read_tf_file("mnist_relu_5_100.tf")
 
     data = np.load("mnist.npz")
     x_test = data["x_test"].astype(np.float32)
@@ -32,6 +32,7 @@ def main():
         #    results.append(("up_{}".format(i), e, r_up[i], "orig"))
 
 
+        """
         r_los = []
         r_ups = []
         for i in range(500):
@@ -43,18 +44,21 @@ def main():
 
         r_lo = np.max(r_los, axis=1)
         r_up = np.min(r_ups, axis=1)
+        """
 
-        for i in [2, 3, 4, 8]:
+        """
+        for i in range(10): # [2, 3, 4, 8]:
             if i == 2:
                 results.append(("lo_{}".format(i), e, r_lo[i], "rnd1"))
             results.append(("up_{}".format(i), e, r_up[i], "rnd1"))
+        """
 
-        for mode in ["new", "new2", "new-rnd"]:
+        for mode in ["new"]:
             state = neve.VerificationState({inp: [lo, up]})
             state.mode = mode
             r_lo, r_up = net.compute_bounds(state)
 
-            for i in [2, 3, 4, 8]:
+            for i in range(10): # [2, 3, 4, 8]:
                 if i == 2:
                     results.append(("lo_{}".format(i), e, r_lo[i], mode))
                 results.append(("up_{}".format(i), e, r_up[i], mode))
