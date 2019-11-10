@@ -25,7 +25,7 @@ def main():
 
     b = x_test[1].reshape(784)
 
-    es = np.linspace(0, 25, 50)
+    es = np.linspace(0, 25, 100)
     results = []
 
     # WARM UP
