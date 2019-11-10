@@ -53,7 +53,7 @@ def main():
             results.append(("up_{}".format(i), e, r_up[i], "rnd1"))
         """
 
-        for mode in ["new"]:
+        for mode in ["std"]:
             state = neve.VerificationState({inp: [lo, up]})
             state.mode = mode
             r_lo, r_up = net.compute_bounds(state)

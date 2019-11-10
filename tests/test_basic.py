@@ -169,12 +169,15 @@ def test_three_layers():
     x = ReLU(x)
 
     state = VerificationState({inp: bounds})
+    state.mode = "mode0"
     b1, b2 = x.compute_bounds(state)
 
-    print("UP", b1)
-    print("DOWN", b2)
-
     check_bounds(x, inp, bounds, (b1, b2), 10.0)
+
+    state = VerificationState({inp: bounds})
+    state.mode = "std"
+    b1, b2 = x.compute_bounds(state)
+    check_bounds(x, inp, bounds, (b1, b2), 35.0)
 
 
 def test_random_layers():
