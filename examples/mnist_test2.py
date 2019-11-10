@@ -4,6 +4,15 @@ import numpy as np
 import pandas as pd
 import plotly.express as pe
 import tqdm
+import tensorflow as tf
+
+
+@tf.function
+def compute_bounds(net, inp, mode, up, lo):
+    state = neve.VerificationState({inp: [lo, up]})
+    state.mode = mode
+    return net.compute_bounds(state)
+
 
 def main():
     net, inp = neve.io.read_tf_file("mnist_relu_5_100.tf")
@@ -18,13 +27,17 @@ def main():
 
     es = np.linspace(0, 25, 50)
     results = []
+
+    # WARM UP
+    compute_bounds(net, inp, "std", tf.constant(b), tf.constant(b))
+
     for e in tqdm.tqdm(es):
         lo = np.maximum(b - e, 0)
         up = np.minimum(b + e, 255)
 
         #result = net.forward({inp: [b, lo, up]})
-        state = neve.VerificationState({inp: [lo, up]})
-        r_lo, r_up = net.compute_bounds(state)
+        #state = neve.VerificationState({inp: [lo, up]})
+        #r_lo, r_up = net.compute_bounds(state)
 
         #for i in [2, 3, 4, 8]:
         #    if i == 2:
@@ -53,10 +66,13 @@ def main():
             results.append(("up_{}".format(i), e, r_up[i], "rnd1"))
         """
 
+        up = tf.constant(up)
+        lo = tf.constant(lo)
         for mode in ["std"]:
-            state = neve.VerificationState({inp: [lo, up]})
-            state.mode = mode
-            r_lo, r_up = net.compute_bounds(state)
+
+            r_lo, r_up = compute_bounds(net, inp, mode, up, lo)
+            r_lo = r_lo.numpy()
+            r_up = r_up.numpy()
 
             for i in range(10): # [2, 3, 4, 8]:
                 if i == 2:
