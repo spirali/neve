@@ -1,9 +1,18 @@
-
-import neve
 import numpy as np
 import pandas as pd
 import plotly.express as pe
+import tensorflow as tf
 import tqdm
+
+import neve
+
+
+@tf.function
+def compute_bounds(net, inp, mode, up, lo):
+    state = neve.VerificationState({inp: [lo, up]})
+    state.mode = mode
+    return net.compute_bounds(state)
+
 
 def main():
     net, inp = neve.io.read_tf_file("mnist_relu_5_100.tf")
@@ -16,21 +25,24 @@ def main():
 
     b = x_test[1].reshape(784)
 
-    es = np.linspace(0, 25, 50)
+    es = np.linspace(0, 25, 100)
     results = []
+
+    # WARM UP
+    compute_bounds(net, inp, "std", tf.constant(b), tf.constant(b))
+
     for e in tqdm.tqdm(es):
         lo = np.maximum(b - e, 0)
         up = np.minimum(b + e, 255)
 
-        #result = net.forward({inp: [b, lo, up]})
-        state = neve.VerificationState({inp: [lo, up]})
-        r_lo, r_up = net.compute_bounds(state)
+        # result = net.forward({inp: [b, lo, up]})
+        # state = neve.VerificationState({inp: [lo, up]})
+        # r_lo, r_up = net.compute_bounds(state)
 
-        #for i in [2, 3, 4, 8]:
+        # for i in [2, 3, 4, 8]:
         #    if i == 2:
         #        results.append(("lo_{}".format(i), e, r_lo[i], "orig"))
         #    results.append(("up_{}".format(i), e, r_up[i], "orig"))
-
 
         """
         r_los = []
@@ -53,12 +65,15 @@ def main():
             results.append(("up_{}".format(i), e, r_up[i], "rnd1"))
         """
 
+        up = tf.constant(up)
+        lo = tf.constant(lo)
         for mode in ["std"]:
-            state = neve.VerificationState({inp: [lo, up]})
-            state.mode = mode
-            r_lo, r_up = net.compute_bounds(state)
 
-            for i in range(10): # [2, 3, 4, 8]:
+            r_lo, r_up = compute_bounds(net, inp, mode, up, lo)
+            r_lo = r_lo.numpy()
+            r_up = r_up.numpy()
+
+            for i in range(10):  # [2, 3, 4, 8]:
                 if i == 2:
                     results.append(("lo_{}".format(i), e, r_lo[i], mode))
                 results.append(("up_{}".format(i), e, r_up[i], mode))
@@ -68,13 +83,8 @@ def main():
     fig = pe.line(df, x="e", y="value", color="name", line_dash="mode")
     fig.show("firefox")
 
-
-
-
-    #print(result[1])
-    #print(y_test[1])
-
-
+    # print(result[1])
+    # print(y_test[1])
 
 
 if __name__ == "__main__":

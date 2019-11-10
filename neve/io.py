@@ -1,8 +1,9 @@
 import json
 
-from .layers import AffineTransformation, ReLU, Input
+# import numpy as np
+import tensorflow as tf
 
-import numpy as np
+from .layers import AffineTransformation, ReLU, Input
 
 
 def read_tf_file(filename):
@@ -16,8 +17,8 @@ def read_tf_file(filename):
             if layer_type != "ReLU\n":
                 raise Exception("Not supported type", layer_type)
 
-            weights = np.array(json.loads(f.readline()))
-            bias = np.array(json.loads(f.readline()))
+            weights = tf.constant(json.loads(f.readline()))
+            bias = tf.constant(json.loads(f.readline()))
             layer = AffineTransformation(layer, weights, bias)
             layer = ReLU(layer)
     return layer, inp
