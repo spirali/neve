@@ -1,10 +1,10 @@
 import numpy as np
-
 import tensorflow as tf
 
 from neve import Input, ReLU, VerificationState, AffineTransformation, FullMatrix
-#from neve.element import DenseConstraint
-from neve.evaluate import bound_difference
+
+
+# from neve.element import DenseConstraint
 
 
 def check_bounds(layer, inp, input_bounds, output_bounds, epsilon=0.01):
@@ -61,8 +61,8 @@ def test_affine_transform():
         [-1.0, 1.0, 3.0],
         [-1.0, 1.0, 0.0]
     ]),
-        np.array([-4.0, 12.0],
-    ))
+                             np.array([-4.0, 12.0],
+                                      ))
     state = VerificationState({inp: bounds})
     r1, r2 = x.compute_bounds(state)
     assert tf.reduce_all(r1 == [-24.0, 1.0])
@@ -82,9 +82,9 @@ def test_input():
     assert tf.reduce_all(r[0] == bounds[0])
     assert tf.reduce_all(r[1] == bounds[1])
 
-    #cst = OneToOneConstraint(np.array([2, -4, 10]))
-    #assert (inp.compute_upper_bounds(state, cst) == [6.0, 32.0, -10.0]).all()
-    #assert (inp.compute_lower_bounds(state, cst) == [4.0, -8.0, -30.0]).all()
+    # cst = OneToOneConstraint(np.array([2, -4, 10]))
+    # assert (inp.compute_upper_bounds(state, cst) == [6.0, 32.0, -10.0]).all()
+    # assert (inp.compute_lower_bounds(state, cst) == [4.0, -8.0, -30.0]).all()
 
     cst = FullMatrix(tf.constant([[1.0, 0, 0], [1.0, -3.0, 0.0], [-1.0, 1.0, 2.0]]))
     assert tf.reduce_all(inp.compute_lower_bounds(state, cst) == [2.0, -4.0, -17.0])
@@ -128,8 +128,8 @@ def test_simple_layer():
         [-1.0, 1.0, 0.0],
         [2.0, 1.0, 3.0]
     ]),
-        tf.constant([-4.0, 12.0, 0.0],
-    ))
+                             tf.constant([-4.0, 12.0, 0.0],
+                                         ))
     x = ReLU(x)
     state = VerificationState({inp: bounds})
     b1, b2 = x.compute_bounds(state)
@@ -150,16 +150,16 @@ def test_three_layers():
         [2.0, 1.0, 3.0],
         [0.0, 1.0, 0.0],
     ]),
-        tf.constant([-4.0, 12.0, 0.0, 0.0],
-    ))
+                             tf.constant([-4.0, 12.0, 0.0, 0.0],
+                                         ))
     x = ReLU(x)
 
     x = AffineTransformation(x, tf.constant([
         [3.0, 1.0, -3.0, 1.0],
         [2.0, 2.0, 0.0, 1.0],
     ]),
-        np.array([1.0, -1.0],
-    ))
+                             np.array([1.0, -1.0],
+                                      ))
     x = ReLU(x)
 
     x = AffineTransformation(x, tf.constant([
@@ -167,8 +167,8 @@ def test_three_layers():
         [2.0, -1.0],
         [1.0, -3.0]
     ]),
-        tf.constant([-3.0, 100.0, -1.0],
-    ))
+                             tf.constant([-3.0, 100.0, -1.0],
+                                         ))
     x = ReLU(x)
 
     state = VerificationState({inp: bounds})
@@ -185,7 +185,8 @@ def test_three_layers():
 
 def test_random_layers():
     def random_at(shape):
-        return AffineTransformation(x, tf.constant(np.random.random(shape) * 2 - 1.0, dtype=tf.float32), tf.constant(np.random.random(shape[0]) * 2 - 1.0, dtype=tf.float32))
+        return AffineTransformation(x, tf.constant(np.random.random(shape) * 2 - 1.0, dtype=tf.float32),
+                                    tf.constant(np.random.random(shape[0]) * 2 - 1.0, dtype=tf.float32))
 
     np.random.seed(320)
     r = np.random.random((10, 2)) - 0.5
@@ -205,7 +206,7 @@ def test_random_layers():
     x = ReLU(x)
 
     x = random_at((5, 6))
-    #x = ReLU(x)
+    # x = ReLU(x)
 
     state = VerificationState({inp: bounds})
     b1, b2 = x.compute_bounds(state)

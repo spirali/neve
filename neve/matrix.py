@@ -1,8 +1,7 @@
-
 import tensorflow as tf
 
-class Matrix:
 
+class Matrix:
     """
     Helper class for matrices for optimizations
     over full matrices vs diagonal matrices

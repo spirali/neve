@@ -1,9 +1,9 @@
 import json
 
-from .layers import AffineTransformation, ReLU, Input
-
-#import numpy as np
+# import numpy as np
 import tensorflow as tf
+
+from .layers import AffineTransformation, ReLU, Input
 
 
 def read_tf_file(filename):

@@ -1,6 +1,4 @@
-#import numpy as np
-import tensorflow as tf
-import enum
+# import numpy as np
 
 """
 def _apply_dense(weights, cst):
@@ -50,6 +48,7 @@ class OneToOneConstraint:
         return DenseConstraint(weights)
 
 """
+
 
 class DeepPolyElement:
     def __init__(self, lower_cst, upper_cst, lower_bias, upper_bias):

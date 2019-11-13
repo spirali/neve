@@ -1,10 +1,10 @@
-
-import neve
 import numpy as np
 import pandas as pd
 import plotly.express as pe
-import tqdm
 import tensorflow as tf
+import tqdm
+
+import neve
 
 
 @tf.function
@@ -35,15 +35,14 @@ def main():
         lo = np.maximum(b - e, 0)
         up = np.minimum(b + e, 255)
 
-        #result = net.forward({inp: [b, lo, up]})
-        #state = neve.VerificationState({inp: [lo, up]})
-        #r_lo, r_up = net.compute_bounds(state)
+        # result = net.forward({inp: [b, lo, up]})
+        # state = neve.VerificationState({inp: [lo, up]})
+        # r_lo, r_up = net.compute_bounds(state)
 
-        #for i in [2, 3, 4, 8]:
+        # for i in [2, 3, 4, 8]:
         #    if i == 2:
         #        results.append(("lo_{}".format(i), e, r_lo[i], "orig"))
         #    results.append(("up_{}".format(i), e, r_up[i], "orig"))
-
 
         """
         r_los = []
@@ -74,7 +73,7 @@ def main():
             r_lo = r_lo.numpy()
             r_up = r_up.numpy()
 
-            for i in range(10): # [2, 3, 4, 8]:
+            for i in range(10):  # [2, 3, 4, 8]:
                 if i == 2:
                     results.append(("lo_{}".format(i), e, r_lo[i], mode))
                 results.append(("up_{}".format(i), e, r_up[i], mode))
@@ -84,13 +83,8 @@ def main():
     fig = pe.line(df, x="e", y="value", color="name", line_dash="mode")
     fig.show("firefox")
 
-
-
-
-    #print(result[1])
-    #print(y_test[1])
-
-
+    # print(result[1])
+    # print(y_test[1])
 
 
 if __name__ == "__main__":

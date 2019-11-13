@@ -1,8 +1,8 @@
-import collections
-
 import tensorflow as tf
+
 from .element import DeepPolyElement
 from .matrix import FullMatrix, DiagonalMatrix
+
 
 class VerificationState:
 
