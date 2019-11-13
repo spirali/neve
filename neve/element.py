@@ -2,7 +2,7 @@
 import tensorflow as tf
 import enum
 
-
+"""
 def _apply_dense(weights, cst):
     if isinstance(cst, DenseConstraint):
         return weights @ cst.weights
@@ -14,6 +14,7 @@ def _apply_dense(weights, cst):
 def _apply_one_to_one(weights, cst):
     if isinstance(cst, DenseConstraint):
         return weights
+
 
 class DenseConstraint:
 
@@ -29,7 +30,7 @@ class DenseConstraint:
         return result
 
     def apply_constraint(self, neg_cst, pos_cst):
-        weights = _apply_dense(self.pos_w, pos_cst.weights) + _apply_dense((self.neg_w, neg_cst.weights)
+        weights = _apply_dense(self.pos_w, pos_cst.weights) + _apply_dense(self.neg_w, neg_cst.weights)
         return DenseConstraint(weights)
 
 

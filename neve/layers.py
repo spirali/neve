@@ -1,8 +1,8 @@
 import collections
 
 import tensorflow as tf
-from .element import DenseConstraint, DeepPolyElement
-
+from .element import DeepPolyElement
+from .matrix import FullMatrix, DiagonalMatrix
 
 class VerificationState:
 
@@ -44,7 +44,7 @@ class Node:
 
     def compute_upper_bounds(self, state, constraint):
         element = state.get_or_create_element(self)
-        bounds = constraint.apply_weights(element.lower_bias, element.upper_bias)
+        bounds = constraint.negative().tensordot(element.lower_bias) + constraint.positive().tensordot(element.upper_bias)
         new_constraint = constraint.apply_constraint(element.lower_cst, element.upper_cst)
 
         assert len(bounds.shape) == 1
@@ -54,7 +54,7 @@ class Node:
 
     def compute_lower_bounds(self, state, constraint):
         element = state.get_or_create_element(self)
-        bounds = constraint.apply_weights(element.upper_bias, element.lower_bias)
+        bounds = constraint.positive().tensordot(element.lower_bias) + constraint.negative().tensordot(element.upper_bias)
         new_constraint = constraint.apply_constraint(element.upper_cst, element.lower_cst)
         return bounds + self.parent.compute_lower_bounds(state, new_constraint)
 
@@ -95,7 +95,7 @@ class AffineTransformation(Node):
         return self.parent.forward(inputs) @ tf.transpose(self.weights) + self.bias
 
     def create_element(self, state):
-        cst = DenseConstraint(self.weights)
+        cst = FullMatrix(self.weights)
         bias = self.bias
         return DeepPolyElement(cst, cst, bias, bias)
 
@@ -132,6 +132,6 @@ class ReLU(Node):
         else:
             raise Exception("Unknown mode '{}'".format(state.mode))
 
-        up_cst = DenseConstraint(tf.linalg.tensor_diag(up_w))
-        lo_cst = DenseConstraint(tf.linalg.tensor_diag(lo_w))
+        up_cst = FullMatrix(tf.linalg.tensor_diag(up_w))
+        lo_cst = FullMatrix(tf.linalg.tensor_diag(lo_w))
         return DeepPolyElement(lo_cst, up_cst, lo_bias, up_bias)

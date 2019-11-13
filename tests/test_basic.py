@@ -1,7 +1,7 @@
 import numpy as np
 
 from neve import Input, ReLU, VerificationState, AffineTransformation
-from neve.element import DenseConstraint
+#from neve.element import DenseConstraint
 from neve.evaluate import bound_difference
 
 
