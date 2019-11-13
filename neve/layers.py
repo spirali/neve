@@ -134,9 +134,9 @@ class ReLU(Node):
         if state.mode == "std":
             lo_w = tf.round(lambda_)
         elif state.mode == "mode0":
-            lo_w = (lambda_ >= 0.99999)
+            lo_w = tf.dtypes.cast(lambda_ >= 0.99999, tf.float32)
         elif state.mode == "mode1":
-            lo_w = (lambda_ >= 0.00001)
+            lo_w = tf.dtypes.cast(lambda_ >= 0.00001, tf.float32)
         else:
             raise Exception("Unknown mode '{}'".format(state.mode))
 
