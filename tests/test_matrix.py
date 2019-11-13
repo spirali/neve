@@ -46,7 +46,6 @@ def test_matmul():
     assert isinstance(r, FullMatrix)
     assert np.array_equal(r.values.numpy(), (c1 @ np.diag(c3)))
 
-
     r = m3 @ m1
     assert isinstance(r, FullMatrix)
     assert np.array_equal(r.values.numpy(), (np.diag(c3) @ c1))

@@ -44,8 +44,10 @@ class Node:
 
     def compute_upper_bounds(self, state, constraint):
         element = state.get_or_create_element(self)
-        bounds = constraint.negative().tensordot(element.lower_bias) + constraint.positive().tensordot(element.upper_bias)
-        new_constraint = constraint.apply_constraint(element.lower_cst, element.upper_cst)
+        neg = constraint.negative()
+        pos = constraint.positive()
+        bounds = neg.tensordot(element.lower_bias) + pos.tensordot(element.upper_bias)
+        new_constraint = neg @ element.lower_cst + pos @ element.upper_cst
 
         assert len(bounds.shape) == 1
         result = bounds + self.parent.compute_upper_bounds(state, new_constraint)
@@ -54,8 +56,10 @@ class Node:
 
     def compute_lower_bounds(self, state, constraint):
         element = state.get_or_create_element(self)
-        bounds = constraint.positive().tensordot(element.lower_bias) + constraint.negative().tensordot(element.upper_bias)
-        new_constraint = constraint.apply_constraint(element.upper_cst, element.lower_cst)
+        neg = constraint.negative()
+        pos = constraint.positive()
+        bounds = pos.tensordot(element.lower_bias) + neg.tensordot(element.upper_bias)
+        new_constraint = pos @ element.lower_cst + neg @ element.upper_cst
         return bounds + self.parent.compute_lower_bounds(state, new_constraint)
 
 
@@ -69,14 +73,18 @@ class Input:
     def compute_upper_bounds(self, state, constraint):
         bounds = state.bounds[self]
         _check_bounds_invariant(bounds)
-        result = constraint.apply_weights(bounds[0], bounds[1])
+        neg = constraint.negative()
+        pos = constraint.positive()
+        result = neg.tensordot(bounds[0]) + pos.tensordot(bounds[1])
         assert len(result.shape) == 1
         return result
 
     def compute_lower_bounds(self, state, constraint):
         bounds = state.bounds[self]
         _check_bounds_invariant(bounds)
-        result = constraint.apply_weights(bounds[1], bounds[0])
+        neg = constraint.negative()
+        pos = constraint.positive()
+        result = neg.tensordot(bounds[1]) + pos.tensordot(bounds[0])
         assert len(result.shape) == 1
         return result
 
@@ -132,6 +140,6 @@ class ReLU(Node):
         else:
             raise Exception("Unknown mode '{}'".format(state.mode))
 
-        up_cst = FullMatrix(tf.linalg.tensor_diag(up_w))
-        lo_cst = FullMatrix(tf.linalg.tensor_diag(lo_w))
+        up_cst = DiagonalMatrix(up_w)
+        lo_cst = DiagonalMatrix(lo_w)
         return DeepPolyElement(lo_cst, up_cst, lo_bias, up_bias)

@@ -63,7 +63,7 @@ class DiagonalMatrix(Matrix):
         return self.values * column
 
     def positive(self):
-        return FullMatrix(tf.maximum(self.values, 0))
+        return DiagonalMatrix(tf.maximum(self.values, 0))
 
     def negative(self):
-        return FullMatrix(tf.minimum(self.values, 0))
+        return DiagonalMatrix(tf.minimum(self.values, 0))
