@@ -9,6 +9,7 @@ class VerificationState:
     def __init__(self, inputs):
         self.bounds = inputs.copy()
         self.elements = {}
+        self.trainable_weights = {}
         self.mode = "std"
 
     def get_or_create_element(self, node):
@@ -131,14 +132,18 @@ class ReLU(Node):
 
         up_w = lambda_
 
-        print(lambda_.dtype)
-
         if state.mode == "std":
             lo_w = tf.round(lambda_)
         elif state.mode == "mode0":
             lo_w = tf.dtypes.cast(lambda_ >= 0.99999, tf.float32)
         elif state.mode == "mode1":
             lo_w = tf.dtypes.cast(lambda_ >= 0.00001, tf.float32)
+        elif state.mode == "trainable":
+            ws = state.trainable_weights.get(self)
+            if ws is None:
+                ws = tf.Variable(tf.zeros(n), name="relu")
+                state.trainable_weights[self] = ws
+            lo_w = tf.sigmoid(ws)
         else:
             raise Exception("Unknown mode '{}'".format(state.mode))
 

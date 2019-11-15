@@ -14,6 +14,35 @@ def compute_bounds(net, inp, mode, up, lo):
     return net.compute_bounds(state)
 
 
+import datetime
+current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+log_dir = 'logs/' + current_time
+log_writer = tf.summary.create_file_writer(log_dir)
+
+
+#@tf.function
+def compute_bounds_train(net, inp, up, lo, index):
+    with log_writer.as_default():
+        state = neve.VerificationState({inp: [lo, up]})
+        state.mode = "trainable"
+
+        f = tf.one_hot(index, 10, on_value=0.0, off_value=1.0)
+        def loss():
+            bounds = net.compute_bounds(state)
+            #a = list(state.trainable_weights.values())
+            #tf.reduce_sum(a[0]) + tf.reduce_sum(a[1]) + tf.reduce_sum(a[2])
+            #return tf.reduce_max(f * bounds[1]) - bounds[0][index]
+            return tf.reduce_max(f * bounds[1]) - bounds[0][index]
+        adam = tf.keras.optimizers.Adam()
+
+        print(">>", state.trainable_weights)
+        adam.minimize(loss, var_list=list(state.trainable_weights.values()))
+        print(">>", state.trainable_weights)
+        adam.minimize(loss, var_list=list(state.trainable_weights.values()))
+
+        return net.compute_bounds(state)
+
+
 def main():
     net, inp = neve.io.read_tf_file("mnist_relu_5_100.tf")
 
@@ -25,7 +54,7 @@ def main():
 
     b = x_test[1].reshape(784)
 
-    es = np.linspace(0, 25, 100)
+    es = np.linspace(0, 25, 40)
     results = []
 
     # WARM UP
@@ -67,9 +96,12 @@ def main():
 
         up = tf.constant(up)
         lo = tf.constant(lo)
-        for mode in ["std"]:
+        for mode in ["trainable"]:
 
-            r_lo, r_up = compute_bounds(net, inp, mode, up, lo)
+            if mode == "trainable":
+                r_lo, r_up = compute_bounds_train(net, inp, up, lo, 2)
+            else:
+                r_lo, r_up = compute_bounds(net, inp, mode, up, lo)
             r_lo = r_lo.numpy()
             r_up = r_up.numpy()
 
