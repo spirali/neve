@@ -11,7 +11,7 @@ def check_bounds(layer, inp, input_bounds, output_bounds, epsilon=0.01):
     np.random.seed(999)
     r = np.random.rand(250000, input_bounds[0].shape[0])
     values = ((r * (input_bounds[1] - input_bounds[0])) + input_bounds[0])
-    output = layer.forward({inp: values})
+    output = layer.forward({inp: tf.constant(values)})
     output_min = tf.reduce_min(output, axis=0)
     output_max = tf.reduce_max(output, axis=0)
     print("Omin", output_min)
